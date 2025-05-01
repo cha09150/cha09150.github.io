@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Egghead Gumpty - Full Game</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: black; color: white;
+      font-family: monospace;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #menu, #game, #jumpscare {
+      width: 100%; max-width: 90vmin;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    #grid {
+      display: grid;
+      gap: 5px;
+      width: 100%; margin: 20px 0;
+    }
+    .room {
+      background: #444;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5vmin;
+      aspect-ratio: 1/1;
+      user-select: none;
+    }
+    .room:active { border: 2px solid white; }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1em;
+    }
+    #message, #score {
+      font-size: 4vmin;
+      margin: 5px 0;
+    }
+    #jumpscare {
+      display: none;
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: black;
+      align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    #jumpscare img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="menu">
+    <h2>Choose Difficulty</h2>
+    <button onclick="startGame('easy')">Easy</button>
+    <button onclick="startGame('medium')">Medium</button>
+    <button onclick="startGame('hard')">Hard</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <h2>Level <span id="levelNum">1</span></h2>
+    <div id="score">Score: 0</div>
+    <div id="grid"></div>
+    <div id="message"></div>
+  </div>
+
+  <div id="jumpscare">
+    <img src="jumpscare.webp" alt="Jumpscare" />
+  </div>
+  <audio id="scream" src="jumpscare.m4a" preload="auto"></audio>
+
+<script>
+let level = 1;
+let maxLevel = 5;
+let gridSize = 3;
+let gumptyRoom = 0;
+let attempts = 0;
+let maxAttempts = 5;
+let score = 0;
+let gameMode = 'easy';
+
+const grid = document.getElementById("grid");
+const levelNum = document.getElementById("levelNum");
+const message = document.getElementById("message");
+const scoreEl = document.getElementById("score");
+const jumpscare = document.getElementById("jumpscare");
+const scream = document.getElementById("scream");
+const menu = document.getElementById("menu");
+const game = document.getElementById("game");
+
+function updateScoreDisplay() {
+  scoreEl.innerText = "Score: " + score;
+}
+
+function startGame(mode) {
+  gameMode = mode;
+  maxAttempts = mode === 'easy' ? 5 : mode === 'medium' ? 4 : 3;
+  score = 0;
+  updateScoreDisplay();
+  menu.style.display = "none";
+  game.style.display = "flex";
+  startLevel();
+}
+
+function startLevel() {
+  attempts = 0;
+  grid.innerHTML = "";
+  gridSize = 2 + level;
+  levelNum.innerText = level;
+  grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+  let totalCells = gridSize * gridSize;
+  gumptyRoom = Math.floor(Math.random() * totalCells);
+
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement("div");
+    cell.className = "room";
+    cell.textContent = "?";
+    cell.addEventListener("click", () => checkRoom(i, cell));
+    grid.appendChild(cell);
+  }
+  message.innerText = `Attempts left: ${maxAttempts - attempts}`;
+}
+
+function checkRoom(index, cell) {
+  if (attempts >= maxAttempts) return;
+  attempts++;
+  if (index === gumptyRoom) {
+    cell.textContent = "G";
+    score += 50;
+    updateScoreDisplay();
+    message.textContent = "You caught Gumpty!";
+    setTimeout(() => {
+      if (level < maxLevel) {
+        level++;
+        startLevel();
+      } else {
+        message.textContent = "You Win!";
+      }
+    }, 1000);
+  } else {
+    cell.textContent = "X";
+    score -= 10;
+    updateScoreDisplay();
+    if (attempts >= maxAttempts) {
+      triggerJumpscare();
+      message.textContent = "Too late... Gumpty got you.";
+    } else {
+      message.textContent = `Attempts left: ${maxAttempts - attempts}`;
+    }
+  }
+}
+
+function triggerJumpscare() {
+  jumpscare.style.display = "flex";
+  scream.currentTime = 0;
+  scream.play().catch(() => {});
+  setTimeout(() => {
+    jumpscare.style.display = "none";
+    location.reload();
+  }, 2500);
+}
+</script>
+</body>
+</html>
